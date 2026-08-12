@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kucing — Chess</title>
+<link rel="icon" type="image/png" href="public/logo.png">
+<meta name="theme-color" content="#ff4fa3">
+<style>
+:root{
+  --pink:#ff4fa3;--pink2:#ff83c1;--deep:#c91d6d;--bg:#fff7fb;--panel:#ffffffee;
+  --ink:#321524;--muted:#8b6277;--line:#f1cfe0;--board:min(86vw,68vh,640px);
+  --light:#ffe9f3;--dark:#c96594;--light2:#fff1f7;--gold:#ffd45a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+body{
+ background:
+ radial-gradient(circle at 8% 0,#ffd1e5 0,transparent 28%),
+ radial-gradient(circle at 100% 18%,#ffe2ef 0,transparent 30%),
+ linear-gradient(145deg,#fff,#fff4f9);
+}
+button,select{font:inherit}
+button{cursor:pointer}
+.splash{position:fixed;z-index:99;inset:0;display:grid;place-items:center;background:linear-gradient(145deg,#ff4fa3,#f12d82);color:white;transition:.5s}
+.splash.hide{opacity:0;pointer-events:none}
+.splash-inner{text-align:center}.splash img{width:105px;height:105px;object-fit:contain;background:white;border-radius:28px;padding:8px;box-shadow:0 20px 60px #7e164466}
+.splash h1{margin:16px 0 5px;font-size:32px}.splash p{margin:0;opacity:.9}
+header{position:sticky;top:0;z-index:20;padding:11px 16px;background:#ffffffdc;backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
+.nav{max-width:1120px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:950}.brand img{width:42px;height:42px;object-fit:contain;border-radius:12px}.brand small{display:block;color:var(--muted);font-weight:650;font-size:11px}
+main{max-width:1120px;margin:auto;padding:20px 14px 50px}
+.hero{padding:20px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(15px);border-radius:24px;box-shadow:0 20px 60px #c51c6c12;display:flex;align-items:center;justify-content:space-between;gap:15px}
+.hero h1{margin:0;font-size:clamp(30px,6vw,48px);letter-spacing:-1.5px}.hero p{margin:5px 0 0;color:var(--muted)}
+.cat{font-size:56px;filter:drop-shadow(0 10px 15px #c51d6b22)}
+.toolbar{margin-top:15px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:13px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 12px 35px #c51c6c0c}
+.modes{display:flex;gap:7px}.mode,.newgame{border:1px solid var(--line);background:#fff7fb;color:var(--ink);padding:10px 13px;border-radius:12px;font-weight:850}.mode.active,.newgame{background:linear-gradient(135deg,var(--pink),var(--deep));color:white;border-color:transparent}
+.status{margin:13px 0 8px;text-align:center;padding:12px;border-radius:14px;background:#fff0f7;border:1px solid #f5d2e3;font-weight:850}
+.game{display:flex;justify-content:center;margin-top:9px}
+.board-shell{width:var(--board);max-width:100%;position:relative}
+.board-frame{padding:clamp(23px,4vw,38px);padding-top:28px;padding-bottom:28px;background:linear-gradient(145deg,#7e3357,#b65a80);border-radius:20px;box-shadow:0 25px 60px #5c15391f,0 5px 0 #6e2749;position:relative}
+.board{width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);overflow:hidden;border:2px solid #552039;border-radius:5px;box-shadow:0 10px 25px #35102244}
+.square{position:relative;display:grid;place-items:center;min-width:0;min-height:0;cursor:pointer}
+.square.light{background:var(--light)}.square.dark{background:var(--dark)}
+.square.selected{box-shadow:inset 0 0 0 4px var(--gold)}
+.square.last{background:#f4bb59!important}
+.square.check{box-shadow:inset 0 0 0 5px #ff3d75}
+.dot{position:absolute;width:19%;aspect-ratio:1;border-radius:50%;background:#c91d6d88;pointer-events:none}
+.capture{position:absolute;inset:7%;border:4px solid #d81e70aa;border-radius:50%;pointer-events:none}
+.piece{
+ width:84%;height:84%;display:grid;place-items:center;line-height:1;
+ font-family:"Times New Roman",Georgia,serif;font-size:clamp(28px,6.5vw,62px);
+ user-select:none;position:relative;z-index:2;
+ filter:drop-shadow(0 3px 2px #0005);transition:transform .12s ease;
+}
+.square:hover .piece{transform:translateY(-2px) scale(1.025)}
+.white-piece{color:#fff;text-shadow:0 1px 0 #d8c8cf,1px 0 0 #d8c8cf,-1px 0 0 #d8c8cf,0 -1px 0 #d8c8cf,0 4px 5px #5e294355}
+.black-piece{color:#171219;text-shadow:0 2px 2px #0008,0 -1px 0 #54404b}
+.coord-file,.coord-rank{position:absolute;font-size:clamp(8px,1.8vw,12px);font-weight:950;z-index:3;opacity:.8}
+.coord-file{right:4px;bottom:2px}.coord-rank{left:4px;top:2px}
+.light .coord-file,.light .coord-rank{color:#9c4d72}.dark .coord-file,.dark .coord-rank{color:#fff0f6}
+.side-info{margin-top:13px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.info{padding:11px 12px;border:1px solid var(--line);background:#fff;border-radius:14px}.info b{display:block;font-size:11px;color:var(--muted)}.info span{font-weight:900}
+.result{position:fixed;z-index:50;inset:0;display:none;place-items:center;background:#250d1d66;backdrop-filter:blur(8px);padding:20px}.result.show{display:grid}
+.result-card{width:min(440px,100%);background:#fff;border:1px solid var(--line);border-radius:28px;padding:25px;text-align:center;box-shadow:0 30px 100px #0004;animation:pop .3s ease}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.result-logo{width:70px;height:70px;object-fit:contain;border-radius:18px}.winner-title{font-size:34px;font-weight:1000;margin:9px 0 3px;color:var(--deep)}.winner-piece{font-size:76px;line-height:1;margin:10px}.winner-name{font-size:18px;font-weight:900}.close-result{margin-top:18px;padding:12px 20px;border:0;border-radius:13px;background:var(--pink);color:white;font-weight:950}
+.moves{margin-top:13px;padding:13px;border-radius:16px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:13px;min-height:45px}
+@media(max-width:650px){
+ :root{--board:min(84vw,58vh,470px)}
+ main{padding-top:13px}.hero{padding:16px}.cat{font-size:42px}.toolbar{align-items:stretch}.modes{width:100%}.mode{flex:1}.newgame{width:100%}
+ .board-frame{padding:24px 23px}.side-info{grid-template-columns:1fr 1fr}.side-info .info:last-child{grid-column:span 2}
+}
+@media(max-height:650px) and (orientation:landscape){
+ :root{--board:min(68vh,72vw,560px)}.hero{display:none}main{padding-top:8px}
+}
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><div class="splash-inner"><img src="public/logo.png" alt="Kucing"><h1>Kucing</h1><p>Menyiapkan papan catur...</p></div></div>
+
+<header><div class="nav">
+ <div class="brand"><img src="public/logo.png" alt="Kucing"><div>Kucing<small>Chess Edition</small></div></div>
+ <button class="newgame" onclick="newGame()">↻ Game Baru</button>
+</div></header>
+
+<main>
+ <section class="hero"><div><h1>Kucing ♟</h1><p>Catur modern dengan papan stabil, koordinat nyata, dan AI adaptif.</p></div><div class="cat">🐱</div></section>
+
+ <section class="toolbar">
+  <div class="modes">
+   <button class="mode active" id="pva" onclick="setMode('pva')">PvA</button>
+   <button class="mode" id="pvp" onclick="setMode('pvp')">PvP</button>
+  </div>
+  <div style="color:var(--muted);font-size:13px;font-weight:750">Putih selalu mulai • AI bermain hitam</div>
+ </section>
+
+ <div class="status" id="status">Giliran Putih</div>
+
+ <section class="game">
+  <div class="board-shell">
+   <div class="board-frame"><div class="board" id="board"></div></div>
+   <div class="side-info">
+    <div class="info"><b>MODE</b><span id="modeInfo">Pemain vs AI</span></div>
+    <div class="info"><b>GILIRAN</b><span id="turnInfo">Putih</span></div>
+    <div class="info"><b>POSISI</b><span id="posInfo">—</span></div>
+   </div>
+   <div class="moves" id="moves">Klik bidak untuk melihat langkah legal.</div>
+  </div>
+ </section>
+</main>
+
+<div class="result" id="result">
+ <div class="result-card">
+  <img class="result-logo" src="public/logo.png" alt="Kucing">
+  <div class="winner-title">The Winners</div>
+  <div class="winner-piece" id="winnerPiece">♔</div>
+  <div class="winner-name" id="winnerName">Bidak Putih</div>
+  <button class="close-result" onclick="newGame()">Main Lagi</button>
+ </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const glyph={P:"♙",N:"♘",B:"♗",R:"♖",Q:"♕",K:"♔",p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"};
+const files="abcdefgh";
+let mode="pva";
+let game;
+
+function clone(b){return b.map(r=>r.slice())}
+function initial(){
+ return [
+  ["r","n","b","q","k","b","n","r"],
+  ["p","p","p","p","p","p","p","p"],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  ["P","P","P","P","P","P","P","P"],
+  ["R","N","B","Q","K","B","N","R"]
+ ];
+}
+function makeGame(){
+ return {b:initial(),turn:"w",selected:null,last:null,over:false,thinking:false,
+         castle:{K:true,Q:true,k:true,q:true},ep:null,half:0,full:1,
+         history:[],positionCount:new Map()};
+}
+function color(x){return x&&x===x.toUpperCase()?"w":"b"}
+function enemy(c){return c==="w"?"b":"w"}
+function inside(r,c){return r>=0&&r<8&&c>=0&&c<8}
+function sq(r,c){return files[c]+(8-r)}
+
+function pseudo(s,r,c,attacks=false){
+ const b=s.b,x=b[r][c];if(!x)return [];
+ const co=color(x),t=x.toLowerCase(),out=[];
+ const add=(rr,cc)=>{
+  if(!inside(rr,cc))return false;
+  const y=b[rr][cc];
+  if(!y)out.push([rr,cc]);
+  else{if(color(y)!==co)out.push([rr,cc]);return false}
+  return true;
+ };
+ if(t==="p"){
+  const d=co==="w"?-1:1;
+  if(attacks){
+   for(const dc of [-1,1])if(inside(r+d,c+dc))out.push([r+d,c+dc]);
+   return out;
+  }
+  if(inside(r+d,c)&&!b[r+d][c]){
+   out.push([r+d,c]);
+   const start=co==="w"?6:1;
+   if(r===start&&!b[r+2*d][c])out.push([r+2*d,c]);
+  }
+  for(const dc of [-1,1]){
+   const rr=r+d,cc=c+dc;
+   if(!inside(rr,cc))continue;
+   if(b[rr][cc]&&color(b[rr][cc])!==co)out.push([rr,cc]);
+   if(s.ep&&s.ep[0]===rr&&s.ep[1]===cc)out.push([rr,cc]);
+  }
+ }
+ if(t==="n"){
+  for(const [dr,dc] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]])add(r+dr,c+dc);
+ }
+ if(t==="b"||t==="q"){
+  for(const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]){
+   let rr=r+dr,cc=c+dc;while(add(rr,cc)){rr+=dr;cc+=dc}
+  }
+ }
+ if(t==="r"||t==="q"){
+  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+   let rr=r+dr,cc=c+dc;while(add(rr,cc)){rr+=dr;cc+=dc}
+  }
+ }
+ if(t==="k"){
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if(dr||dc)add(r+dr,c+dc);
+  if(!attacks&&!inCheck(s,co)){
+   if(co==="w"&&r===7&&c===4){
+    if(s.castle.K&&b[7][7]==="R"&&!b[7][5]&&!b[7][6]&&!attacked(s,7,5,"b")&&!attacked(s,7,6,"b"))out.push([7,6]);
+    if(s.castle.Q&&b[7][0]==="R"&&!b[7][1]&&!b[7][2]&&!b[7][3]&&!attacked(s,7,3,"b")&&!attacked(s,7,2,"b"))out.push([7,2]);
+   }
+   if(co==="b"&&r===0&&c===4){
+    if(s.castle.k&&b[0][7]==="r"&&!b[0][5]&&!b[0][6]&&!attacked(s,0,5,"w")&&!attacked(s,0,6,"w"))out.push([0,6]);
+    if(s.castle.q&&b[0][0]==="r"&&!b[0][1]&&!b[0][2]&&!b[0][3]&&!attacked(s,0,3,"w")&&!attacked(s,0,2,"w"))out.push([0,2]);
+   }
+  }
+ }
+ return out;
+}
+
+function king(s,co){
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(s.b[r][c]===(co==="w"?"K":"k"))return[r,c];
+ return null;
+}
+function attacked(s,r,c,by){
+ for(let rr=0;rr<8;rr++)for(let cc=0;cc<8;cc++){
+  const x=s.b[rr][cc];
+  if(!x||color(x)!==by)continue;
+  if(pseudo(s,rr,cc,true).some(q=>q[0]===r&&q[1]===c))return true;
+ }
+ return false;
+}
+function inCheck(s,co){
+ const k=king(s,co);
+ return !k||attacked(s,k[0],k[1],enemy(co));
+}
+
+function apply(s,m){
+ const n={
+  b:clone(s.b),turn:enemy(s.turn),selected:null,last:{from:[m.r,m.c],to:[m.toR,m.toC]},
+  over:false,thinking:false,castle:{...s.castle},ep:null,half:s.half+1,full:s.full+(s.turn==="b"?1:0),
+  history:s.history.slice(),positionCount:new Map(s.positionCount)
+ };
+ const b=n.b,x=b[m.r][m.c],co=color(x),t=x.toLowerCase(),target=b[m.toR][m.toC];
+ b[m.toR][m.toC]=x;b[m.r][m.c]=null;
+
+ if(t==="p"){
+  n.half=0;
+  if(Math.abs(m.toR-m.r)===2)n.ep=[(m.r+m.toR)/2,m.c];
+  if(target===null&&m.toC!==m.c&&s.ep&&s.ep[0]===m.toR&&s.ep[1]===m.toC)b[m.r][m.toC]=null;
+  if(m.toR===0||m.toR===7)b[m.toR][m.toC]=co==="w"?"Q":"q";
+ } else if(target)n.half=0;
+
+ if(t==="k"){
+  if(co==="w"){n.castle.K=false;n.castle.Q=false}
+  else{n.castle.k=false;n.castle.q=false}
+  if(Math.abs(m.toC-m.c)===2){
+   if(m.toC===6){b[m.toR][5]=b[m.toR][7];b[m.toR][7]=null}
+   else{b[m.toR][3]=b[m.toR][0];b[m.toR][0]=null}
+  }
+ }
+ if(t==="r"){
+  if(co==="w"&&m.r===7&&m.c===0)n.castle.Q=false;
+  if(co==="w"&&m.r===7&&m.c===7)n.castle.K=false;
+  if(co==="b"&&m.r===0&&m.c===0)n.castle.q=false;
+  if(co==="b"&&m.r===0&&m.c===7)n.castle.k=false;
+ }
+ if(target&&target.toLowerCase()==="r"){
+  if(m.toR===7&&m.toC===0)n.castle.Q=false;
+  if(m.toR===7&&m.toC===7)n.castle.K=false;
+  if(m.toR===0&&m.toC===0)n.castle.q=false;
+  if(m.toR===0&&m.toC===7)n.castle.k=false;
+ }
+ return n;
+}
+
+function legal(s,co=s.turn){
+ const out=[];
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const x=s.b[r][c];
+  if(!x||color(x)!==co)continue;
+  for(const [rr,cc] of pseudo(s,r,c)){
+   const n=apply(s,{r,c,toR:rr,toC:cc});
+   if(!inCheck(n,co))out.push({r,c,toR:rr,toC:cc});
+  }
+ }
+ return out;
+}
+
+function positionKey(s){
+ let pieces=s.b.map(r=>r.map(x=>x||".").join("")).join("/");
+ return pieces+" "+s.turn+" "+Object.entries(s.castle).filter(x=>x[1]).map(x=>x[0]).join("")+" "+(s.ep?s.ep.join(","):"-");
+}
+function endState(s){
+ const moves=legal(s,s.turn);
+ if(moves.length){
+  if(s.half>=100)return "draw50";
+  const count=s.positionCount.get(positionKey(s))||0;
+  if(count>=3)return "draw3";
+  return null;
+ }
+ return inCheck(s,s.turn)?enemy(s.turn):"draw";
+}
+function insufficientMaterial(s){
+ const pieces=[];
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(s.b[r][c]&&!"Kk".includes(s.b[r][c]))pieces.push(s.b[r][c].toLowerCase());
+ if(pieces.length===0)return true;
+ if(pieces.length===1&&["b","n"].includes(pieces[0]))return true;
+ if(pieces.length===2&&pieces.every(x=>x==="b"))return true;
+ return false;
+}
+
+function render(){
+ const b=$("board");b.innerHTML="";
+ const lm=game.selected?legal(game,game.turn).filter(m=>m.r===game.selected[0]&&m.c===game.selected[1]):[];
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const d=document.createElement("div");
+  d.className="square "+((r+c)%2?"dark":"light");
+  const x=game.b[r][c];
+  if(game.selected&&game.selected[0]===r&&game.selected[1]===c)d.classList.add("selected");
+  if(game.last&&((game.last.from[0]===r&&game.last.from[1]===c)||(game.last.to[0]===r&&game.last.to[1]===c)))d.classList.add("last");
+  const k=king(game,game.turn);
+  if(k&&k[0]===r&&k[1]===c&&inCheck(game,game.turn))d.classList.add("check");
+
+  const move=lm.find(m=>m.toR===r&&m.toC===c);
+  if(move)d.innerHTML+=x?'<span class="capture"></span>':'<span class="dot"></span>';
+  if(r===7)d.innerHTML+='<span class="coord-file">'+files[c]+'</span>';
+  if(c===0)d.innerHTML+='<span class="coord-rank">'+(8-r)+'</span>';
+  if(x)d.innerHTML+='<span class="piece '+(color(x)==="w"?"white-piece":"black-piece")+'">'+glyph[x]+'</span>';
+  d.onclick=()=>clickSquare(r,c);
+  b.appendChild(d);
+ }
+ $("turnInfo").textContent=game.turn==="w"?"Putih":"Hitam";
+ $("posInfo").textContent=game.selected?sq(...game.selected):"—";
+}
+
+function clickSquare(r,c){
+ if(game.over||game.thinking)return;
+ const x=game.b[r][c];
+ const myColor=game.turn;
+ if(game.selected){
+  const moves=legal(game,myColor);
+  const m=moves.find(q=>q.r===game.selected[0]&&q.c===game.selected[1]&&q.toR===r&&q.toC===c);
+  if(m){doMove(m);return}
+  if(x&&color(x)===myColor){game.selected=[r,c];render();showLegalText();return}
+  game.selected=null;render();$("moves").textContent="Langkah dibatalkan.";
+  return;
+ }
+ if(x&&color(x)===myColor){
+  game.selected=[r,c];render();showLegalText();
+ }else{
+  $("moves").textContent="Tidak bisa memindahkan bidak lawan atau ke kotak yang tidak valid.";
+ }
+}
+function showLegalText(){
+ const n=legal(game,game.turn).filter(m=>m.r===game.selected[0]&&m.c===game.selected[1]);
+ $("moves").textContent=n.length?`Langkah legal: ${n.map(m=>sq(m.toR,m.toC)).join(", ")}`:"Bidak ini tidak memiliki langkah legal.";
+}
+
+function doMove(m){
+ const from=sq(m.r,m.c),to=sq(m.toR,m.toC);
+ const moving=game.b[m.r][m.c];
+ game=apply(game,m);
+ game.history.push(from+"–"+to);
+ const pk=positionKey(game);
+ game.positionCount.set(pk,(game.positionCount.get(pk)||0)+1);
+ game.selected=null;
+ render();
+ $("moves").textContent=`${from} → ${to}`;
+ const result=endState(game);
+ if(result){finish(result);return}
+ $("status").textContent=`Giliran ${game.turn==="w"?"Putih":"Hitam"}${inCheck(game,game.turn)?" — SKAK!":""}`;
+ if(insufficientMaterial(game)){finish("drawMaterial");return}
+ if(mode==="pva"&&game.turn==="b")setTimeout(runAI,180);
+}
+
+function finish(result){
+ game.over=true;
+ if(result==="w"||result==="b"){
+  const name=result==="w"?"Bidak Putih":"Bidak Hitam";
+  $("status").textContent=`SKAKMAT — ${name} menang!`;
+  $("moves").textContent="Permainan berakhir karena raja tidak memiliki langkah legal dan sedang di-skak.";
+  showWinner(result);
+ }else{
+  let text=result==="draw"?"STALEMATE — Remis.":result==="draw50"?"Remis berdasarkan aturan 50 langkah.":result==="draw3"?"Remis karena posisi terulang tiga kali.":"Remis karena materi tidak cukup.";
+  $("status").textContent=text;$("moves").textContent="Tidak ada pemenang.";
+  showWinner("draw");
+ }
+}
+
+function showWinner(w){
+ $("winnerPiece").textContent=w==="w"?"♔":w==="b"?"♚":"½";
+ $("winnerPiece").className="winner-piece "+(w==="w"?"white-piece":"black-piece");
+ $("winnerName").textContent=w==="w"?"Bidak Putih":w==="b"?"Bidak Hitam":"Remis";
+ $("result").classList.add("show");
+}
+
+/* Strong browser AI: legal chess rules + minimax/alpha-beta + positional evaluation. */
+const VALUE={p:100,n:320,b:330,r:500,q:900,k:20000};
+const PST={
+p:[0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,25,25,10,5,5,0,0,0,20,20,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-20,-20,10,10,5,0,0,0,0,0,0,0,0],
+n:[-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,5,5,0,-20,-40,-30,5,10,15,15,10,5,-30,-30,0,15,20,20,15,0,-30,-30,5,15,20,20,15,5,-30,-30,0,10,15,15,10,0,-30,-40,-20,0,0,0,-20,-40,-50,-40,-30,-30,-30,-40,-50],
+b:[-20,-10,-10,-10,-10,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,10,10,5,0,-10,-10,5,5,10,10,5,5,-10,-10,0,10,10,10,10,0,-10,-10,10,10,10,10,10,10,-10,-10,5,0,0,0,0,5,-10,-20,-10,-10,-10,-10,-10,-10,-20],
+r:[0,0,0,0,0,0,0,0,5,10,10,10,10,10,10,5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,0],
+q:[-20,-10,-10,-5,-5,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,5,5,5,0,-10,-5,0,5,5,5,5,0,-5,0,0,5,5,5,5,0,-5,-10,5,5,5,5,5,0,-10,-10,0,5,0,0,0,0,-10,-20,-10,-5,-5,-10,-10,-20],
+k:[-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-20,-30,-30,-40,-40,-30,-30,-20,-10,-20,-20,-20,-20,-20,-20,-10,20,20,0,0,0,0,20,20,20,30,10,0,0,10,30,20]
+};
+function evaluate(s){
+ let score=0;
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const x=s.b[r][c];if(!x)continue;
+  const co=color(x),t=x.toLowerCase();
+  const idx=co==="w"?r*8+c:(7-r)*8+c;
+  score+=(co==="w"?1:-1)*(VALUE[t]+(PST[t]?.[idx]||0));
+ }
+ return score;
+}
+function aiSearch(s,depth,alpha,beta){
+ const result=endState(s);
+ if(result==="w")return 999999+depth;
+ if(result==="b")return -999999-depth;
+ if(result&&result.startsWith("draw"))return 0;
+ if(depth===0)return evaluate(s);
+ const moves=legal(s,s.turn);
+ if(s.turn==="w"){
+  let best=-Infinity;
+  for(const m of moves){best=Math.max(best,aiSearch(apply(s,m),depth-1,alpha,beta));alpha=Math.max(alpha,best);if(alpha>=beta)break}
+  return best;
+ }else{
+  let best=Infinity;
+  for(const m of moves){best=Math.min(best,aiSearch(apply(s,m),depth-1,alpha,beta));beta=Math.min(beta,best);if(alpha>=beta)break}
+  return best;
+ }
+}
+function runAI(){
+ if(game.over||mode!=="pva"||game.turn!=="b")return;
+ game.thinking=true;$("status").textContent="AI sedang berpikir...";render();
+ setTimeout(()=>{
+  const moves=legal(game,"b");
+  let best=moves[0],bestScore=Infinity;
+  // Depth 3: tactical and positional search that remains responsive in a browser.
+  for(const m of moves){
+   const score=aiSearch(apply(game,m),2,-Infinity,Infinity);
+   if(score<bestScore){bestScore=score;best=m}
+  }
+  game.thinking=false;
+  if(best)doMove(best);
+ },30);
+}
+
+function setMode(m){
+ mode=m;
+ $("pva").classList.toggle("active",m==="pva");
+ $("pvp").classList.toggle("active",m==="pvp");
+ $("modeInfo").textContent=m==="pva"?"Pemain vs AI":"Pemain vs Pemain";
+ newGame();
+}
+function newGame(){
+ $("result").classList.remove("show");
+ game=makeGame();
+ const pk=positionKey(game);game.positionCount.set(pk,1);
+ $("status").textContent="Giliran Putih";
+ $("moves").textContent="Klik bidak putih untuk melihat langkah legal.";
+ render();
+}
+window.addEventListener("load",()=>{
+ setTimeout(()=>{$("splash").classList.add("hide");newGame()},650);
+});
+</script></script>
+</body>
+</html>
